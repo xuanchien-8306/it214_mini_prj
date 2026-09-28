@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for identity-service
+  postgres-identity:
+    image: postgres:15-alpine
+    container_name: postgres-identity
+    environment:
+      POSTGRES_DB: identity_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-identity-data:/var/lib/postgresql/data
+    networks:
+      - rikkei-bank-network
+
+  # PostgreSQL for customer-service
+  postgres-customer:
+    image: postgres:15-alpine
+    container_name: postgres-customer
+    environment:
+      POSTGRES_DB: customer_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-customer-data:/var/lib/postgresql/data
+    networks:
+      - rikkei-bank-network
+
+  # PostgreSQL for account-service
+  postgres-account:
+    image: postgres:15-alpine
+    container_name: postgres-account
+    environment:
+      POSTGRES_DB: account_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-account-data:/var/lib/postgresql/data
+    networks:
+      - rikkei-bank-network
+
+  # PostgreSQL for transaction-service
+  postgres-transaction:
+    image: postgres:15-alpine
+    container_name: postgres-transaction
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-transaction-data:/var/lib/postgresql/data
+    networks:
+      - rikkei-bank-network
+
+  # MongoDB for notification-service
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - rikkei-bank-network
+
+  # Redis for caching and token blacklist
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - rikkei-bank-network
+
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - rikkei-bank-network
+
+  # Kafka for event-driven architecture
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - rikkei-bank-network
+
+volumes:
+  postgres-identity-data:
+  postgres-customer-data:
+  postgres-account-data:
+  postgres-transaction-data:
+  mongodb-data:
+  redis-data:
+
+networks:
+  rikkei-bank-network:
+    driver: bridge
